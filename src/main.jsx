@@ -76,11 +76,22 @@ function App() {
       // ambient glow
       const glowX = width * (0.5 + Math.sin(tick * 0.008) * motion / 120);
       const glowY = heightPx * (0.55 + Math.cos(tick * 0.006) * motion / 180);
-      const glow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, width * 0.62);
-      glow.addColorStop(0, color + '28');
+      const analyser = analyserRef.current;
+      let beatEnergy = 0;
+      if (analyser) {
+        const pulseData = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(pulseData);
+        const sampleCount = Math.max(1, Math.floor(pulseData.length * 0.22));
+        for (let i = 0; i < sampleCount; i++) beatEnergy += pulseData[i];
+        beatEnergy = beatEnergy / sampleCount / 255;
+      } else {
+        beatEnergy = playing ? 0.28 + Math.abs(Math.sin(tick * 0.045)) * 0.22 : 0.04;
+      }
+      const pulseRadius = width * (0.48 + beatEnergy * 0.24) * (motion / 100);
+      const glow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, pulseRadius);
+      glow.addColorStop(0, color + Math.floor(18 + beatEnergy * 42).toString(16).padStart(2, '0'));
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow; ctx.fillRect(0, 0, width, heightPx);
-      const analyser = analyserRef.current;
       let data = new Uint8Array(density);
       if (analyser) {
         const raw = new Uint8Array(analyser.frequencyBinCount);
@@ -294,8 +305,7 @@ function App() {
           <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.text} onClick={() => togglePanel("text")}><span className="section-icon">T</span> Text <span className="chevron">{panelCollapsed.text ? '›' : '⌄'}</span></button>
           <label className="field-label">Song title</label><input className="text-input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Song title"/>
           <label className="field-label">Artist</label><input className="text-input" value={artist} onChange={e=>setArtist(e.target.value)} placeholder="Artist name"/>
-          <div className="color-row text-color-row"><label>Text color</label><div className="color-picker"><input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/><span>{textColor.toUpperCase()}</span></div></div>
-          <div className="slider-row"><label>Text size <span>{textScale}%</span></label><input type="range" min="60" max="160" step="5" value={textScale} onChange={e=>setTextScale(+e.target.value)}/></div>
+
           <div className="slider-row"><label>Text horizontal <span>{textX}%</span></label><input type="range" min="5" max="95" value={textX} onChange={e=>setTextX(+e.target.value)}/></div>
           <div className="slider-row"><label>Text vertical <span>{textY}%</span></label><input type="range" min="5" max="85" value={textY} onChange={e=>setTextY(+e.target.value)}/></div>
           <div className="color-row text-color-row"><label>Text color</label><div className="color-picker"><input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/><span>{textColor.toUpperCase()}</span></div></div>
