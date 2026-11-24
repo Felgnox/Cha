@@ -28,7 +28,8 @@ function App() {
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
   const [volume, setVolume] = useState(80);
-  const [currentTime, setCurrentTime] = useState(0);\n  const [motion, setMotion] = useState(55);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [motion, setMotion] = useState(55);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -56,7 +57,9 @@ function App() {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, heightPx);
       // ambient glow
-      const glowX = width * (0.5 + Math.sin(tick * 0.008) * motion / 120);\n      const glowY = heightPx * (0.55 + Math.cos(tick * 0.006) * motion / 180);\n      const glow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, width * 0.62);
+      const glowX = width * (0.5 + Math.sin(tick * 0.008) * motion / 120);
+      const glowY = heightPx * (0.55 + Math.cos(tick * 0.006) * motion / 180);
+      const glow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, width * 0.62);
       glow.addColorStop(0, color + '28');
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow; ctx.fillRect(0, 0, width, heightPx);
