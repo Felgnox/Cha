@@ -40,6 +40,38 @@ function App() {
   const streamDestinationRef = useRef(null);
   const [panelCollapsed, setPanelCollapsed] = useState({});
   const togglePanel = (name) => setPanelCollapsed(prev => ({...prev, [name]: !prev[name]}));
+  const [settingsReady, setSettingsReady] = useState(false);
+  const settingsKey = 'cha-studio-settings-v1';
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(settingsKey) || 'null');
+      if (saved && saved.version === 1) {
+        if (typeof saved.title === 'string') setTitle(saved.title);
+        if (typeof saved.artist === 'string') setArtist(saved.artist);
+        if (typeof saved.color === 'string') setColor(saved.color);
+        if (typeof saved.backgroundColor === 'string') setBackgroundColor(saved.backgroundColor);
+        if (presets.includes(saved.preset)) setPreset(saved.preset);
+        if (Number.isFinite(saved.density)) setDensity(saved.density);
+        if (Number.isFinite(saved.height)) setHeight(saved.height);
+        if (Number.isFinite(saved.position)) setPosition(saved.position);
+        if (['16:9','9:16','1:1','4:5'].includes(saved.aspect)) setAspect(saved.aspect);
+        if (Number.isFinite(saved.motion)) setMotion(saved.motion);
+        if (typeof saved.textColor === 'string') setTextColor(saved.textColor);
+        if (Number.isFinite(saved.textScale)) setTextScale(saved.textScale);
+        if (Number.isFinite(saved.textX)) setTextX(saved.textX);
+        if (Number.isFinite(saved.textY)) setTextY(saved.textY);
+        if (['720','1080'].includes(String(saved.exportQuality))) setExportQuality(String(saved.exportQuality));
+      }
+    } catch { /* Ignore corrupted local settings and keep defaults. */ }
+    setSettingsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!settingsReady) return;
+    const settings = { version: 1, title, artist, color, backgroundColor, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality };
+    try { localStorage.setItem(settingsKey, JSON.stringify(settings)); } catch { /* Storage may be unavailable or full. */ }
+  }, [settingsReady, title, artist, color, backgroundColor, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality]);
 
 
 
