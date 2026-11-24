@@ -24,3 +24,5 @@ audio{display:none}
 .text-color-row{margin-top:10px}.text-color-row .color-picker input{width:22px;height:22px}
 
 .text-color-row{margin-top:10px}.text-color-row .color-picker input{width:22px;height:22px}
+
+.section-toggle{width:100%;padding:0;border:0;background:transparent;text-align:left;cursor:pointer;}.panel-section:has(.section-toggle[aria-expanded="false"])>*:not(.section-toggle){display:none;}.panel-section:has(.section-toggle[aria-expanded="false"]){padding-bottom:0;margin-bottom:6px;border-bottom:0;}
