@@ -28,3 +28,6 @@ audio{display:none}
 .panel-section .color-row+.swatches{margin-top:8px}
 
 .project-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.project-actions button,.project-load{display:flex;align-items:center;justify-content:center;min-height:36px;border:1px solid #35354a;border-radius:9px;background:#191a28;color:#dfe0ef;font-size:12px;font-weight:600;cursor:pointer;padding:8px}.project-load input{display:none}
+
+/* Background media and playback scrubbing controls */
+.bg-upload{margin-top:12px;height:88px}.toggle-btn{width:100%;border:1px solid #343443;background:#171822;border-radius:7px;padding:8px 10px;font-size:10px;color:#aaa}.toggle-btn:hover{border-color:#9861ed;color:#ddd}.seek-slider{width:100%;accent-color:#a06bff;height:4px;margin-top:9px;cursor:pointer}.timeline-track{cursor:pointer}.preset-grid{grid-template-columns:repeat(3,minmax(0,1fr)}.preset-card{min-height:66px}.remove-bg-btn{margin-top:8px;width:100%;border:1px solid #343443;background:#171822;border-radius:7px;padding:7px;font-size:10px;color:#a9a9b8}
