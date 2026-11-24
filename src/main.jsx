@@ -215,6 +215,39 @@ function App() {
     mediaRecorderRef.current = recorder;
   };
 
+  const saveProject = () => {
+    const project = { version: 1, title, artist, color, backgroundColor, preset, density, height, position, aspect, motion, textColor, textScale, exportQuality };
+    const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'cha-project.json'; link.click();
+    URL.revokeObjectURL(url);
+  };
+  const loadProject = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const p = JSON.parse(reader.result);
+        if (p.version !== 1) throw new Error('Unsupported project version');
+        if (typeof p.title === 'string') setTitle(p.title);
+        if (typeof p.artist === 'string') setArtist(p.artist);
+        if (typeof p.color === 'string') setColor(p.color);
+        if (typeof p.backgroundColor === 'string') setBackgroundColor(p.backgroundColor);
+        if (presets.includes(p.preset)) setPreset(p.preset);
+        if (Number.isFinite(p.density)) setDensity(p.density);
+        if (Number.isFinite(p.height)) setHeight(p.height);
+        if (Number.isFinite(p.position)) setPosition(p.position);
+        if (['16:9','9:16','1:1','4:5'].includes(p.aspect)) setAspect(p.aspect);
+        if (Number.isFinite(p.motion)) setMotion(p.motion);
+        if (typeof p.textColor === 'string') setTextColor(p.textColor);
+        if (Number.isFinite(p.textScale)) setTextScale(p.textScale);
+        if (['720','1080'].includes(String(p.exportQuality))) setExportQuality(String(p.exportQuality));
+        setExportMessage('Project settings loaded.');
+      } catch { setExportMessage('Invalid project file.'); }
+    };
+    reader.readAsText(file);
+  };
   const stopExport = () => {
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     audioRef.current?.pause(); setPlaying(false);
@@ -265,8 +298,9 @@ function App() {
         <section className="panel-section last">
           <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.canvas} onClick={() => togglePanel("canvas")}><span className="section-icon">▣</span> Canvas <span className="chevron">{panelCollapsed.canvas ? '›' : '⌄'}</span></button>
           <label className="field-label">Aspect ratio</label><div className="ratio-grid">{['16:9','9:16','1:1','4:5'].map(r=><button key={r} className={aspect===r?'ratio-active':''} onClick={()=>setAspect(r)}>{r}</button>)}</div>
+          <div className="project-actions"><button type="button" onClick={saveProject}>Save project</button><label className="project-load">Load project<input type="file" accept="application/json,.json" onChange={e=>loadProject(e.target.files?.[0])}/></label></div>
           <label className="field-label">Export resolution</label><div className="ratio-grid"><button className={exportQuality==='720'?'ratio-active':''} onClick={()=>setExportQuality('720')}>720p</button><button className={exportQuality==='1080'?'ratio-active':''} onClick={()=>setExportQuality('1080')}>1080p</button></div>
-          <label className="field-label">Export resolution</label><div className="ratio-grid"><button className={exportQuality==='720'?'ratio-active':''} onClick={()=>setExportQuality('720')}>720p</button><button className={exportQuality==='1080'?'ratio-active':''} onClick={()=>setExportQuality('1080')}>1080p</button></div>
+
         </section>
         <div className="sidebar-footer"><span className="status-indicator"/> Autosaved locally <span>v0.1</span></div>
       </aside>
