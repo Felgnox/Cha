@@ -5,3 +5,11 @@
 - Background color picker with preset swatches
 - Save/load project settings as JSON\n- Aspect ratio controls\n- WebM capture export with audio from the Web Audio graph
 - Resolution-aware canvas render sizing (720p / 1080p target)\n\n## Run locally\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n\nThis is still a browser prototype. WebM export uses MediaRecorder and is browser-dependent; MP4 export, robust project saving, presets, and a proper timeline are future improvements.\n
+## Run modes
+
+- Development server: `npm run dev` (Vite default local URL).
+- Standard start command: `npm start` (listens on all network interfaces).
+- Production build: `npm run build`.
+- Production preview: `npm run preview` after building.
+
+Install dependencies first with `npm install`.
