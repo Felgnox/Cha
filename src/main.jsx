@@ -35,11 +35,13 @@ function App() {
   const [exportQuality, setExportQuality] = useState('1080');
   const audioContextRef = useRef(null);
   const streamDestinationRef = useRef(null);
-  const [textColor, setTextColor] = useState('#ffffff');
-  const [textScale, setTextScale] = useState(100);
-  const [exportQuality, setExportQuality] = useState('1080');
-  const audioContextRef = useRef(null);
-  const streamDestinationRef = useRef(null);
+  const [panelCollapsed, setPanelCollapsed] = useState({});
+  const togglePanel = (name) => setPanelCollapsed(prev => ({...prev, [name]: !prev[name]}));
+
+
+
+
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -229,13 +231,13 @@ function App() {
       <aside className="sidebar">
         <div className="side-heading"><span>EDITOR</span><span className="tiny-tag">BETA</span></div>
         <section className="panel-section">
-          <div className="section-title"><span className="section-icon">♫</span> Audio <span className="chevron">⌄</span></div>
+          <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.audio} onClick={() => togglePanel("audio")}><span className="section-icon">♫</span> Audio <span className="chevron">{panelCollapsed.audio ? '›' : '⌄'}</span></button>
           <label className="upload-zone" htmlFor="audio-upload"><div className="upload-icon">↑</div><strong>{fileName ? 'Replace track' : 'Drop your audio here'}</strong><small>MP3, WAV, M4A · or browse</small><input id="audio-upload" type="file" accept="audio/*" onChange={e => loadAudio(e.target.files?.[0])}/></label>
           {fileName && <div className="loaded-track"><span className="track-icon">♫</span><div><b>{fileName}</b><small>Ready to visualize</small></div><button title="Remove audio" onClick={() => {audioRef.current.pause(); setAudioUrl(''); setFileName(''); setPlaying(false);}}>×</button></div>}
           <div className="audio-controls"><button className="play-btn" onClick={togglePlay} disabled={!audioUrl}>{playing ? 'Ⅱ' : '▶'}</button><div className="audio-meta"><div className="track-line"><span>{playing ? 'Playing audio' : 'Preview track'}</span><span className="time-label">{audioUrl ? formatTime(currentTime) : '00:00'}</span></div><div className="progress-track"><div className="progress-fill" style={{width: audioRef.current && audioUrl && audioRef.current.duration ? (audioRef.current.currentTime/audioRef.current.duration*100)+'%' : '0%'}} /></div></div><div className="volume-control"><span className="vol-icon">◖))</span><input aria-label="Volume" type="range" min="0" max="100" value={volume} onChange={e=>{const v=+e.target.value;setVolume(v);if(audioRef.current)audioRef.current.volume=v/100;}}/></div></div>
         </section>
         <section className="panel-section">
-          <div className="section-title"><span className="section-icon">◈</span> Visualizer <span className="chevron">⌄</span></div>
+          <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.visualizer} onClick={() => togglePanel("visualizer")}><span className="section-icon">◈</span> Visualizer <span className="chevron">{panelCollapsed.visualizer ? '›' : '⌄'}</span></button>
           <div className="preset-grid">{presets.map(p => <button key={p} className={'preset-card ' + (preset === p ? 'active' : '')} onClick={() => setPreset(p)}><div className={'preset-art art-' + p.toLowerCase()}><div className="mini-bars">{Array.from({length:16},(_,i)=><i key={i} style={{height:(8+((i*13)%22))+'px'}} />)}</div></div><span>{p}</span></button>)}</div>
           <div className="slider-row"><label>Density <span>{density}</span></label><input type="range" min="16" max="128" step="4" value={density} onChange={e=>setDensity(+e.target.value)}/></div>
           <div className="slider-row"><label>Amplitude <span>{height}%</span></label><input type="range" min="15" max="100" value={height} onChange={e=>setHeight(+e.target.value)}/></div>
@@ -243,12 +245,12 @@ function App() {
           <div className="slider-row"><label>Background motion <span>{motion}%</span></label><input type="range" min="0" max="100" value={motion} onChange={e=>setMotion(+e.target.value)}/></div>
         </section>
         <section className="panel-section">
-          <div className="section-title"><span className="section-icon">✧</span> Appearance <span className="chevron">⌄</span></div>
+          <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.appearance} onClick={() => togglePanel("appearance")}><span className="section-icon">✧</span> Appearance <span className="chevron">{panelCollapsed.appearance ? '›' : '⌄'}</span></button>
           <div className="color-row"><label>Visualizer color</label><div className="color-picker"><input type="color" value={color} onChange={e=>setColor(e.target.value)}/><span>{color.toUpperCase()}</span></div></div>
           <div className="swatches">{['#9b5cff','#37e0ff','#ff4d9d','#b8ff4d','#ffb347','#ffffff'].map(c=><button key={c} style={{background:c}} className={color===c?'selected':''} onClick={()=>setColor(c)} title={c}/>)}</div>
         </section>
         <section className="panel-section">
-          <div className="section-title"><span className="section-icon">T</span> Text <span className="chevron">⌄</span></div>
+          <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.text} onClick={() => togglePanel("text")}><span className="section-icon">T</span> Text <span className="chevron">{panelCollapsed.text ? '›' : '⌄'}</span></button>
           <label className="field-label">Song title</label><input className="text-input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Song title"/>
           <label className="field-label">Artist</label><input className="text-input" value={artist} onChange={e=>setArtist(e.target.value)} placeholder="Artist name"/>
           <div className="color-row text-color-row"><label>Text color</label><div className="color-picker"><input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/><span>{textColor.toUpperCase()}</span></div></div>
@@ -257,7 +259,7 @@ function App() {
           <div className="slider-row"><label>Text size <span>{textScale}%</span></label><input type="range" min="60" max="160" step="5" value={textScale} onChange={e=>setTextScale(+e.target.value)}/></div>
         </section>
         <section className="panel-section last">
-          <div className="section-title"><span className="section-icon">▣</span> Canvas <span className="chevron">⌄</span></div>
+          <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.canvas} onClick={() => togglePanel("canvas")}><span className="section-icon">▣</span> Canvas <span className="chevron">{panelCollapsed.canvas ? '›' : '⌄'}</span></button>
           <label className="field-label">Aspect ratio</label><div className="ratio-grid">{['16:9','9:16','1:1','4:5'].map(r=><button key={r} className={aspect===r?'ratio-active':''} onClick={()=>setAspect(r)}>{r}</button>)}</div>
           <label className="field-label">Export resolution</label><div className="ratio-grid"><button className={exportQuality==='720'?'ratio-active':''} onClick={()=>setExportQuality('720')}>720p</button><button className={exportQuality==='1080'?'ratio-active':''} onClick={()=>setExportQuality('1080')}>1080p</button></div>
           <label className="field-label">Export resolution</label><div className="ratio-grid"><button className={exportQuality==='720'?'ratio-active':''} onClick={()=>setExportQuality('720')}>720p</button><button className={exportQuality==='1080'?'ratio-active':''} onClick={()=>setExportQuality('1080')}>1080p</button></div>
