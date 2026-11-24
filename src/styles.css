@@ -28,3 +28,5 @@ audio{display:none}
 .section-toggle{width:100%;padding:0;border:0;background:transparent;text-align:left;cursor:pointer;}.panel-section:has(.section-toggle[aria-expanded="false"])>*:not(.section-toggle){display:none;}.panel-section:has(.section-toggle[aria-expanded="false"]){padding-bottom:0;margin-bottom:6px;border-bottom:0;}
 
 .panel-section .color-row+.swatches{margin-top:8px}
+
+.project-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.project-actions button,.project-load{display:flex;align-items:center;justify-content:center;min-height:36px;border:1px solid #35354a;border-radius:9px;background:#191a28;color:#dfe0ef;font-size:12px;font-weight:600;cursor:pointer;padding:8px}.project-load input{display:none}
