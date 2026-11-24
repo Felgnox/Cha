@@ -1,0 +1,247 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import './styles.css';
+
+const presets = ['Spectrum', 'Mirror', 'Wave', 'Particles'];
+const initialColor = '#9b5cff';
+
+function App() {
+  const canvasRef = useRef(null);
+  const audioRef = useRef(null);
+  const ctxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const sourceRef = useRef(null);
+  const rafRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const [fileName, setFileName] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [playing, setPlaying] = useState(false);
+  const [color, setColor] = useState(initialColor);
+  const [preset, setPreset] = useState('Spectrum');
+  const [density, setDensity] = useState(64);
+  const [height, setHeight] = useState(48);
+  const [position, setPosition] = useState(50);
+  const [aspect, setAspect] = useState('16:9');
+  const [title, setTitle] = useState('YOUR SONG TITLE');
+  const [artist, setArtist] = useState('ARTIST NAME');
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState('');
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctxRef.current = ctx;
+    let width = 0, heightPx = 0;
+    const resize = () => {
+      const box = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = box.width; heightPx = box.height;
+      canvas.width = Math.max(1, Math.floor(width * dpr));
+      canvas.height = Math.max(1, Math.floor(heightPx * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    let tick = 0;
+    const draw = () => {
+      tick += 1;
+      ctx.clearRect(0, 0, width, heightPx);
+      const gradient = ctx.createLinearGradient(0, 0, width, heightPx);
+      gradient.addColorStop(0, '#0b1020');
+      gradient.addColorStop(0.52, '#10142a');
+      gradient.addColorStop(1, '#180d27');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, heightPx);
+      // ambient glow
+      const glow = ctx.createRadialGradient(width * 0.5, heightPx * 0.6, 0, width * 0.5, heightPx * 0.6, width * 0.62);
+      glow.addColorStop(0, color + '28');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, width, heightPx);
+      const analyser = analyserRef.current;
+      let data = new Uint8Array(density);
+      if (analyser) {
+        const raw = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(raw);
+        data = new Uint8Array(density);
+        for (let i = 0; i < density; i++) {
+          const idx = Math.floor(i / density * raw.length);
+          data[i] = raw[idx] || 0;
+        }
+      } else {
+        for (let i = 0; i < density; i++) data[i] = 10 + Math.abs(Math.sin(tick * 0.024 + i * 0.19)) * (playing ? 160 : 28) + Math.abs(Math.sin(tick * 0.01 + i * 0.11)) * 20;
+      }
+      const centerY = heightPx * (position / 100);
+      const maxH = heightPx * (height / 100) * 0.82;
+      const barW = width / density;
+      if (preset === 'Wave') {
+        ctx.beginPath();
+        for (let i = 0; i < density; i++) {
+          const y = centerY + Math.sin(i * 0.13 + tick * 0.03) * (data[i] / 255) * maxH;
+          const x = (i / density) * width;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.shadowBlur = 18; ctx.shadowColor = color; ctx.stroke(); ctx.shadowBlur = 0;
+      } else if (preset === 'Particles') {
+        for (let i = 0; i < density; i++) {
+          const amp = data[i] / 255;
+          const x = (i / density) * width;
+          const y = centerY + Math.sin(tick * 0.03 + i) * amp * maxH * 0.5;
+          ctx.beginPath(); ctx.arc(x, y, 1.2 + amp * 4, 0, Math.PI * 2);
+          ctx.fillStyle = color; ctx.shadowBlur = 10; ctx.shadowColor = color; ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+      } else {
+        for (let i = 0; i < density; i++) {
+          const amp = data[i] / 255;
+          const h = Math.max(3, amp * maxH);
+          const x = i * barW;
+          const w = Math.max(1, barW * 0.62);
+          const grad = ctx.createLinearGradient(0, centerY - h, 0, centerY + h);
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.18, color);
+          grad.addColorStop(1, '#38215e');
+          ctx.fillStyle = grad; ctx.shadowBlur = 13; ctx.shadowColor = color;
+          if (preset === 'Mirror') {
+            ctx.fillRect(x + (barW - w) / 2, centerY - h, w, h);
+            ctx.fillRect(x + (barW - w) / 2, centerY, w, h);
+          } else {
+            ctx.fillRect(x + (barW - w) / 2, centerY - h, w, h);
+          }
+        }
+        ctx.shadowBlur = 0;
+      }
+      // subtle scanlines and text
+      ctx.fillStyle = 'rgba(255,255,255,0.025)';
+      for (let y = 0; y < heightPx; y += 4) ctx.fillRect(0, y, width, 1);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,255,255,.92)';
+      ctx.font = '700 ' + Math.max(14, width * 0.035) + 'px Inter, Arial, sans-serif';
+      ctx.fillText(title || 'YOUR SONG TITLE', width / 2, heightPx * 0.23);
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      ctx.font = '500 ' + Math.max(10, width * 0.016) + 'px Inter, Arial, sans-serif';
+      ctx.fillText(artist || 'ARTIST NAME', width / 2, heightPx * 0.29);
+      rafRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(rafRef.current); };
+  }, [color, preset, density, height, position, playing, title, artist]);
+
+  const ensureAudioGraph = () => {
+    const audio = audioRef.current;
+    if (!audio || sourceRef.current) return;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaElementSource(audio);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.82;
+    source.connect(analyser); analyser.connect(audioCtx.destination);
+    sourceRef.current = source; analyserRef.current = analyser;
+  };
+
+  const loadAudio = (file) => {
+    if (!file) return;
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    const url = URL.createObjectURL(file);
+    setAudioUrl(url); setFileName(file.name); setExportMessage('');
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = url; audioRef.current.load(); }
+  };
+
+  const togglePlay = async () => {
+    if (!audioRef.current || !audioUrl) return;
+    ensureAudioGraph();
+    if (playing) { audioRef.current.pause(); setPlaying(false); }
+    else { await audioRef.current.play(); setPlaying(true); }
+  };
+
+  const startExport = () => {
+    if (!audioUrl) { setExportMessage('Primero carga una canción para exportar.'); return; }
+    const canvas = canvasRef.current;
+    if (!canvas.captureStream || !window.MediaRecorder) { setExportMessage('Tu navegador no soporta la grabación de canvas.'); return; }
+    ensureAudioGraph();
+    const canvasStream = canvas.captureStream(30);
+    const audioStream = audioRef.current.captureStream ? audioRef.current.captureStream() : null;
+    const mixed = new MediaStream([...canvasStream.getVideoTracks(), ...(audioStream?.getAudioTracks() || [])]);
+    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+    const recorder = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: 6000000 });
+    chunksRef.current = [];
+    recorder.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: mime });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (fileName.replace(/\.[^/.]+$/, '') || 'cha-visualizer') + '.webm'; a.click();
+      setExportMessage('¡Exportación terminada! Se descargó tu video WebM.');
+      setExporting(false);
+      mixed.getTracks().forEach(t => t.stop());
+    };
+    setExporting(true); setExportMessage('Grabando visualizador en tiempo real…');
+    recorder.start();
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().then(() => setPlaying(true)).catch(() => {});
+    audioRef.current.onended = () => { if (recorder.state !== 'inactive') recorder.stop(); setPlaying(false); };
+    mediaRecorderRef.current = recorder;
+  };
+
+  const stopExport = () => {
+    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
+    audioRef.current?.pause(); setPlaying(false);
+  };
+
+  const dimensions = aspect === '16:9' ? 'landscape' : aspect === '9:16' ? 'portrait' : 'square';
+
+  return <div className="app-shell">
+    <header className="topbar">
+      <div className="brand"><span className="brand-mark">CH</span><span>cha<span className="brand-dot">.</span></span><span className="beta">STUDIO</span></div>
+      <div className="top-center"><span className="live-dot" /> AUDIO VISUALIZER <span className="top-divider">/</span> WORKSPACE</div>
+      <div className="top-actions"><button className="ghost-btn" onClick={() => setExportMessage('Proyecto listo para seguir editando.')}>↗ Share</button><button className="export-btn" onClick={exporting ? stopExport : startExport}>{exporting ? '■ Stop export' : '⇩ Export video'}</button></div>
+    </header>
+    <div className="layout">
+      <aside className="sidebar">
+        <div className="side-heading"><span>EDITOR</span><span className="tiny-tag">BETA</span></div>
+        <section className="panel-section">
+          <div className="section-title"><span className="section-icon">♫</span> Audio <span className="chevron">⌄</span></div>
+          <label className="upload-zone" htmlFor="audio-upload"><div className="upload-icon">↑</div><strong>{fileName ? 'Replace track' : 'Drop your audio here'}</strong><small>MP3, WAV, M4A · or browse</small><input id="audio-upload" type="file" accept="audio/*" onChange={e => loadAudio(e.target.files?.[0])}/></label>
+          {fileName && <div className="loaded-track"><span className="track-icon">♫</span><div><b>{fileName}</b><small>Ready to visualize</small></div><button title="Remove audio" onClick={() => {audioRef.current.pause(); setAudioUrl(''); setFileName(''); setPlaying(false);}}>×</button></div>}
+          <div className="audio-controls"><button className="play-btn" onClick={togglePlay} disabled={!audioUrl}>{playing ? 'Ⅱ' : '▶'}</button><div className="audio-meta"><div className="track-line"><span>{playing ? 'Playing audio' : 'Preview track'}</span><span className="time-label">{audioRef.current && audioUrl ? formatTime(audioRef.current.currentTime) : '00:00'}</span></div><div className="progress-track"><div className="progress-fill" style={{width: audioRef.current && audioUrl && audioRef.current.duration ? (audioRef.current.currentTime/audioRef.current.duration*100)+'%' : '0%'}} /></div></div><span className="vol-icon">◖))</span></div>
+        </section>
+        <section className="panel-section">
+          <div className="section-title"><span className="section-icon">◈</span> Visualizer <span className="chevron">⌄</span></div>
+          <div className="preset-grid">{presets.map(p => <button key={p} className={'preset-card ' + (preset === p ? 'active' : '')} onClick={() => setPreset(p)}><div className={'preset-art art-' + p.toLowerCase()}><div className="mini-bars">{Array.from({length:16},(_,i)=><i key={i} style={{height:(8+((i*13)%22))+'px'}} />)}</div></div><span>{p}</span></button>)}</div>
+          <div className="slider-row"><label>Density <span>{density}</span></label><input type="range" min="16" max="128" step="4" value={density} onChange={e=>setDensity(+e.target.value)}/></div>
+          <div className="slider-row"><label>Amplitude <span>{height}%</span></label><input type="range" min="15" max="100" value={height} onChange={e=>setHeight(+e.target.value)}/></div>
+          <div className="slider-row"><label>Vertical position <span>{position}%</span></label><input type="range" min="10" max="90" value={position} onChange={e=>setPosition(+e.target.value)}/></div>
+        </section>
+        <section className="panel-section">
+          <div className="section-title"><span className="section-icon">✧</span> Appearance <span className="chevron">⌄</span></div>
+          <div className="color-row"><label>Visualizer color</label><div className="color-picker"><input type="color" value={color} onChange={e=>setColor(e.target.value)}/><span>{color.toUpperCase()}</span></div></div>
+          <div className="swatches">{['#9b5cff','#37e0ff','#ff4d9d','#b8ff4d','#ffb347','#ffffff'].map(c=><button key={c} style={{background:c}} className={color===c?'selected':''} onClick={()=>setColor(c)} title={c}/>)}</div>
+        </section>
+        <section className="panel-section">
+          <div className="section-title"><span className="section-icon">T</span> Text <span className="chevron">⌄</span></div>
+          <label className="field-label">Song title</label><input className="text-input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Song title"/>
+          <label className="field-label">Artist</label><input className="text-input" value={artist} onChange={e=>setArtist(e.target.value)} placeholder="Artist name"/>
+        </section>
+        <section className="panel-section last">
+          <div className="section-title"><span className="section-icon">▣</span> Canvas <span className="chevron">⌄</span></div>
+          <label className="field-label">Aspect ratio</label><div className="ratio-grid">{['16:9','9:16','1:1','4:5'].map(r=><button key={r} className={aspect===r?'ratio-active':''} onClick={()=>setAspect(r)}>{r}</button>)}</div>
+        </section>
+        <div className="sidebar-footer"><span className="status-indicator"/> Autosaved locally <span>v0.1</span></div>
+      </aside>
+      <main className="workspace">
+        <div className="workspace-head"><div><span className="crumb">PROJECT / </span><strong>Untitled visualizer</strong><span className="save-cloud">✓ Saved</span></div><div className="workspace-tools"><button title="Zoom out">−</button><span>Fit</span><button title="Zoom in">+</button></div></div>
+        <div className="preview-stage">
+          <div className={'preview-frame ' + dimensions}><canvas ref={canvasRef}/><div className="frame-badge">{aspect} <span>•</span> 30 FPS</div></div>
+          <div className="preview-note"><span className="sparkle">✦</span> Preview updates live as you edit</div>
+        </div>
+        <div className="timeline-area"><div className="timeline-header"><span>Timeline</span><span className="timeline-hint">LIVE PREVIEW</span></div><div className="timeline-track"><div className="timeline-playhead"/><div className="timeline-waveform">{Array.from({length:120},(_,i)=><i key={i} style={{height:(6+((i*17+Math.sin(i)*11)%31))+'px'}}/>)}</div></div><div className="timeline-time"><span>00:00</span><span>{audioRef.current?.duration ? formatTime(audioRef.current.duration) : '--:--'}</span></div></div>
+        {exportMessage && <div className="toast-msg">{exportMessage}</div>}
+      </main>
+    </div>
+    <audio ref={audioRef} src={audioUrl || undefined} onEnded={()=>setPlaying(false)} onTimeUpdate={()=>{}}/>
+  </div>;
+}
+
+function formatTime(value) {
+  if (!Number.isFinite(value)) return '00:00';
+  return Math.floor(value / 60).toString().padStart(2, '0') + ':' + Math.floor(value % 60).toString().padStart(2, '0');
+}
+
+createRoot(document.getElementById('root')).render(<App />);
