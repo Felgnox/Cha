@@ -27,6 +27,8 @@ function App() {
   const [artist, setArtist] = useState('ARTIST NAME');
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
+  const [volume, setVolume] = useState(80);
+  const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -185,7 +187,7 @@ function App() {
     audioRef.current?.pause(); setPlaying(false);
   };
 
-  const dimensions = aspect === '16:9' ? 'landscape' : aspect === '9:16' ? 'portrait' : 'square';
+  const dimensions = aspect === '16:9' ? 'landscape' : aspect === '9:16' ? 'portrait' : aspect === '4:5' ? 'portrait-45' : 'square';
 
   return <div className="app-shell">
     <header className="topbar">
@@ -200,7 +202,7 @@ function App() {
           <div className="section-title"><span className="section-icon">♫</span> Audio <span className="chevron">⌄</span></div>
           <label className="upload-zone" htmlFor="audio-upload"><div className="upload-icon">↑</div><strong>{fileName ? 'Replace track' : 'Drop your audio here'}</strong><small>MP3, WAV, M4A · or browse</small><input id="audio-upload" type="file" accept="audio/*" onChange={e => loadAudio(e.target.files?.[0])}/></label>
           {fileName && <div className="loaded-track"><span className="track-icon">♫</span><div><b>{fileName}</b><small>Ready to visualize</small></div><button title="Remove audio" onClick={() => {audioRef.current.pause(); setAudioUrl(''); setFileName(''); setPlaying(false);}}>×</button></div>}
-          <div className="audio-controls"><button className="play-btn" onClick={togglePlay} disabled={!audioUrl}>{playing ? 'Ⅱ' : '▶'}</button><div className="audio-meta"><div className="track-line"><span>{playing ? 'Playing audio' : 'Preview track'}</span><span className="time-label">{audioRef.current && audioUrl ? formatTime(audioRef.current.currentTime) : '00:00'}</span></div><div className="progress-track"><div className="progress-fill" style={{width: audioRef.current && audioUrl && audioRef.current.duration ? (audioRef.current.currentTime/audioRef.current.duration*100)+'%' : '0%'}} /></div></div><span className="vol-icon">◖))</span></div>
+          <div className="audio-controls"><button className="play-btn" onClick={togglePlay} disabled={!audioUrl}>{playing ? 'Ⅱ' : '▶'}</button><div className="audio-meta"><div className="track-line"><span>{playing ? 'Playing audio' : 'Preview track'}</span><span className="time-label">{audioUrl ? formatTime(currentTime) : '00:00'}</span></div><div className="progress-track"><div className="progress-fill" style={{width: audioRef.current && audioUrl && audioRef.current.duration ? (audioRef.current.currentTime/audioRef.current.duration*100)+'%' : '0%'}} /></div></div><div className="volume-control"><span className="vol-icon">◖))</span><input aria-label="Volume" type="range" min="0" max="100" value={volume} onChange={e=>{const v=+e.target.value;setVolume(v);if(audioRef.current)audioRef.current.volume=v/100;}}/></div></div>
         </section>
         <section className="panel-section">
           <div className="section-title"><span className="section-icon">◈</span> Visualizer <span className="chevron">⌄</span></div>
@@ -235,7 +237,7 @@ function App() {
         {exportMessage && <div className="toast-msg">{exportMessage}</div>}
       </main>
     </div>
-    <audio ref={audioRef} src={audioUrl || undefined} onEnded={()=>setPlaying(false)} onTimeUpdate={()=>{}}/>
+    <audio ref={audioRef} src={audioUrl || undefined} onEnded={()=>setPlaying(false)} onTimeUpdate={e=>setCurrentTime(e.currentTarget.currentTime)}/>
   </div>;
 }
 
