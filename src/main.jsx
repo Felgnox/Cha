@@ -18,6 +18,7 @@ function App() {
   const [audioUrl, setAudioUrl] = useState('');
   const [playing, setPlaying] = useState(false);
   const [color, setColor] = useState(initialColor);
+  const [backgroundColor, setBackgroundColor] = useState('#10142a');
   const [preset, setPreset] = useState('Spectrum');
   const [density, setDensity] = useState(64);
   const [height, setHeight] = useState(48);
@@ -65,9 +66,9 @@ function App() {
       tick += 1;
       ctx.clearRect(0, 0, width, heightPx);
       const gradient = ctx.createLinearGradient(0, 0, width, heightPx);
-      gradient.addColorStop(0, '#0b1020');
-      gradient.addColorStop(0.52, '#10142a');
-      gradient.addColorStop(1, '#180d27');
+      gradient.addColorStop(0, '#080a13');
+      gradient.addColorStop(0.52, backgroundColor);
+      gradient.addColorStop(1, '#090912');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, heightPx);
       // ambient glow
@@ -157,7 +158,7 @@ function App() {
     };
     draw();
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(rafRef.current); };
-  }, [color, preset, density, height, position, playing, title, artist, motion, textColor, textScale, exportQuality, aspect]);
+  }, [color, preset, density, height, position, playing, title, artist, motion, textColor, textScale, exportQuality, aspect, backgroundColor]);
 
   const ensureAudioGraph = () => {
     const audio = audioRef.current;
@@ -248,6 +249,9 @@ function App() {
           <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.appearance} onClick={() => togglePanel("appearance")}><span className="section-icon">✧</span> Appearance <span className="chevron">{panelCollapsed.appearance ? '›' : '⌄'}</span></button>
           <div className="color-row"><label>Visualizer color</label><div className="color-picker"><input type="color" value={color} onChange={e=>setColor(e.target.value)}/><span>{color.toUpperCase()}</span></div></div>
           <div className="swatches">{['#9b5cff','#37e0ff','#ff4d9d','#b8ff4d','#ffb347','#ffffff'].map(c=><button key={c} style={{background:c}} className={color===c?'selected':''} onClick={()=>setColor(c)} title={c}/>)}</div>
+          <div className="color-row"><label>Background color</label><div className="color-picker"><input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)}/><span>{backgroundColor.toUpperCase()}</span></div></div>
+          <div className="swatches">{['#10142a','#160a25','#08202a','#22100c','#0b2020','#111111'].map(c=><button key={'bg-'+c} style={{background:c}} className={backgroundColor===c?'selected':''} onClick={()=>setBackgroundColor(c)} title={c}/>)}</div>
+
         </section>
         <section className="panel-section">
           <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.text} onClick={() => togglePanel("text")}><span className="section-icon">T</span> Text <span className="chevron">{panelCollapsed.text ? '›' : '⌄'}</span></button>
