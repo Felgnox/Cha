@@ -1,15 +1,39 @@
-# Cha Audio Visualizer — v0.1\n\nFirst interactive prototype of Cha Studio.\n\n## Included\n- Live canvas visualization (Spectrum, Mirror, Wave, Particles, Circular)\n- Audio file upload and playback through Web Audio analyser\n- Color, density, amplitude, vertical placement and background motion controls
-- Text color and size controls
-- Export resolution selector (720p / 1080p)\n- Editable track title and artist
-- Collapsible left-side control panels
-- Background color picker with preset swatches
-- Save/load project settings as JSON\n- Aspect ratio controls\n- WebM capture export with audio from the Web Audio graph
-- Resolution-aware canvas render sizing (720p / 1080p target)\n\n## Run locally\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n\nThis is still a browser prototype. WebM export uses MediaRecorder and is browser-dependent; MP4 export, robust project saving, presets, and a proper timeline are future improvements.\n
+# Cha Studio — Audio Visualizer (prototype)
+
+Cha Studio is a runnable browser-based audio visualizer editor. This is an original implementation inspired by common audio-visualizer workflows, not a copy of Specterr.
+
+## Features
+- Upload and preview local audio (browser-supported audio formats)
+- Live audio analysis using Web Audio
+- Visualizer styles: Spectrum, Mirror, Wave, Particles, Circular
+- Density, amplitude, vertical position, and animated background motion controls
+- Reactive ambient glow, color selection, and preset swatches
+- Editable song title and artist, with text color, scale, and position
+- Canvas aspect ratios: 16:9, 9:16, 1:1, 4:5
+- Canvas export targets: 720p and 1080p
+- Record preview + audio into a WebM video (MediaRecorder)
+- Save/load editable settings as JSON
+- Autosave settings in the browser's local storage
+
+## Run locally
+
+Requires Node.js 20+ recommended.
+
+```bash
+npm install
+npm run dev
+```
+
+Open the local URL Vite prints in the terminal.
+
 ## Run modes
+- Development: `npm run dev`
+- Start (network accessible): `npm start`
+- Production bundle: `npm run build`
+- Preview production bundle: `npm run preview` (after build)
 
-- Development server: `npm run dev` (Vite default local URL).
-- Standard start command: `npm start` (listens on all network interfaces).
-- Production build: `npm run build`.
-- Production preview: `npm run preview` after building.
+## Export limitations
+WebM recording depends on browser support for Canvas capture and MediaRecorder. MP4 export is not implemented yet. Project JSON stores editor settings only, not the uploaded song file; reload your audio after opening a project. This prototype has no full timeline editor.
 
-Install dependencies first with `npm install`.
+## Browser notes
+A modern Chromium-based browser is recommended. Audio must be loaded before playback or video export.
