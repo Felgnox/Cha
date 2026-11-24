@@ -31,3 +31,6 @@ audio{display:none}
 
 /* Background media and playback scrubbing controls */
 .bg-upload{margin-top:12px;height:88px}.toggle-btn{width:100%;border:1px solid #343443;background:#171822;border-radius:7px;padding:8px 10px;font-size:10px;color:#aaa}.toggle-btn:hover{border-color:#9861ed;color:#ddd}.seek-slider{width:100%;accent-color:#a06bff;height:4px;margin-top:9px;cursor:pointer}.timeline-track{cursor:pointer}.preset-grid{grid-template-columns:repeat(3,minmax(0,1fr)}.preset-card{min-height:66px}.remove-bg-btn{margin-top:8px;width:100%;border:1px solid #343443;background:#171822;border-radius:7px;padding:7px;font-size:10px;color:#a9a9b8}
+
+/* Background media and playback scrubbing controls */
+.bg-upload{margin-top:12px;height:88px}.toggle-btn{width:100%;border:1px solid #343443;background:#171822;border-radius:7px;padding:8px 10px;font-size:10px;color:#aaa}.toggle-btn:hover{border-color:#9861ed;color:#ddd}.seek-slider{width:100%;accent-color:#a06bff;height:4px;margin-top:9px;cursor:pointer}.timeline-track{cursor:pointer}.preset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.preset-card{min-height:66px}
