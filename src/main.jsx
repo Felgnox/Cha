@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
-const presets = ['Spectrum', 'Mirror', 'Wave', 'Particles'];
+const presets = ['Spectrum', 'Mirror', 'Wave', 'Particles', 'Circular'];
 const initialColor = '#9b5cff';
 
 function App() {
@@ -28,7 +28,7 @@ function App() {
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
   const [volume, setVolume] = useState(80);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);\n  const [motion, setMotion] = useState(55);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -56,7 +56,7 @@ function App() {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, heightPx);
       // ambient glow
-      const glow = ctx.createRadialGradient(width * 0.5, heightPx * 0.6, 0, width * 0.5, heightPx * 0.6, width * 0.62);
+      const glowX = width * (0.5 + Math.sin(tick * 0.008) * motion / 120);\n      const glowY = heightPx * (0.55 + Math.cos(tick * 0.006) * motion / 180);\n      const glow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, width * 0.62);
       glow.addColorStop(0, color + '28');
       glow.addColorStop(1, 'transparent');
       ctx.fillStyle = glow; ctx.fillRect(0, 0, width, heightPx);
@@ -93,6 +93,19 @@ function App() {
           ctx.fillStyle = color; ctx.shadowBlur = 10; ctx.shadowColor = color; ctx.fill();
         }
         ctx.shadowBlur = 0;
+      } else if (preset === 'Circular') {
+        const radius = Math.min(width, heightPx) * 0.2;
+        const centerX = width * 0.5;
+        for (let i = 0; i < density; i++) {
+          const amp = data[i] / 255;
+          const angle = (i / density) * Math.PI * 2;
+          const outer = radius + Math.max(3, amp * maxH * 0.5);
+          ctx.beginPath();
+          ctx.moveTo(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius);
+          ctx.lineTo(centerX + Math.cos(angle) * outer, centerY + Math.sin(angle) * outer);
+          ctx.strokeStyle = color; ctx.lineWidth = Math.max(2, barW * 0.72); ctx.lineCap = 'round'; ctx.shadowBlur = 12; ctx.shadowColor = color; ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
       } else {
         for (let i = 0; i < density; i++) {
           const amp = data[i] / 255;
@@ -127,7 +140,7 @@ function App() {
     };
     draw();
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(rafRef.current); };
-  }, [color, preset, density, height, position, playing, title, artist]);
+  }, [color, preset, density, height, position, playing, title, artist, motion]);
 
   const ensureAudioGraph = () => {
     const audio = audioRef.current;
@@ -210,6 +223,7 @@ function App() {
           <div className="slider-row"><label>Density <span>{density}</span></label><input type="range" min="16" max="128" step="4" value={density} onChange={e=>setDensity(+e.target.value)}/></div>
           <div className="slider-row"><label>Amplitude <span>{height}%</span></label><input type="range" min="15" max="100" value={height} onChange={e=>setHeight(+e.target.value)}/></div>
           <div className="slider-row"><label>Vertical position <span>{position}%</span></label><input type="range" min="10" max="90" value={position} onChange={e=>setPosition(+e.target.value)}/></div>
+          <div className="slider-row"><label>Background motion <span>{motion}%</span></label><input type="range" min="0" max="100" value={motion} onChange={e=>setMotion(+e.target.value)}/></div>
         </section>
         <section className="panel-section">
           <div className="section-title"><span className="section-icon">✧</span> Appearance <span className="chevron">⌄</span></div>
