@@ -1,4 +1,7 @@
 # Cha Audio Visualizer — v0.1\n\nFirst interactive prototype of Cha Studio.\n\n## Included\n- Live canvas visualization (Spectrum, Mirror, Wave, Particles, Circular)\n- Audio file upload and playback through Web Audio analyser\n- Color, density, amplitude, vertical placement and background motion controls
 - Text color and size controls
-- Export resolution selector (720p / 1080p)\n- Editable track title and artist\n- Aspect ratio controls\n- WebM capture export with audio from the Web Audio graph
+- Export resolution selector (720p / 1080p)\n- Editable track title and artist
+- Collapsible left-side control panels
+- Background color picker with preset swatches
+- Save/load project settings as JSON\n- Aspect ratio controls\n- WebM capture export with audio from the Web Audio graph
 - Resolution-aware canvas render sizing (720p / 1080p target)\n\n## Run locally\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n\nThis is still a browser prototype. WebM export uses MediaRecorder and is browser-dependent; MP4 export, robust project saving, presets, and a proper timeline are future improvements.\n
