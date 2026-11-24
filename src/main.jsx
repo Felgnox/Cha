@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
-const presets = ['Spectrum', 'Mirror', 'Wave', 'Particles', 'Circular'];
+const presets = ['Spectrum', 'Mirror', 'Wave', 'Particles', 'Circular', 'Radial', 'Stacked', 'Line'];
 const initialColor = '#9b5cff';
 
 function App() {
@@ -19,6 +19,10 @@ function App() {
   const [playing, setPlaying] = useState(false);
   const [color, setColor] = useState(initialColor);
   const [backgroundColor, setBackgroundColor] = useState('#10142a');
+  const [backgroundImageName, setBackgroundImageName] = useState('');
+  const [backgroundBeat, setBackgroundBeat] = useState(false);
+  const [backgroundDensity, setBackgroundDensity] = useState(50);
+  const backgroundImageRef = useRef(null);
   const [preset, setPreset] = useState('Spectrum');
   const [density, setDensity] = useState(64);
   const [height, setHeight] = useState(48);
@@ -31,6 +35,7 @@ function App() {
   const [volume, setVolume] = useState(80);
   const exportCleanupRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [motion, setMotion] = useState(55);
   const [textColor, setTextColor] = useState('#ffffff');
   const [textScale, setTextScale] = useState(100);
@@ -52,6 +57,8 @@ function App() {
         if (typeof saved.artist === 'string') setArtist(saved.artist);
         if (typeof saved.color === 'string') setColor(saved.color);
         if (typeof saved.backgroundColor === 'string') setBackgroundColor(saved.backgroundColor);
+        if (Number.isFinite(saved.backgroundDensity)) setBackgroundDensity(saved.backgroundDensity);
+        if (typeof saved.backgroundBeat === 'boolean') setBackgroundBeat(saved.backgroundBeat);
         if (presets.includes(saved.preset)) setPreset(saved.preset);
         if (Number.isFinite(saved.density)) setDensity(saved.density);
         if (Number.isFinite(saved.height)) setHeight(saved.height);
@@ -74,9 +81,9 @@ function App() {
 
   useEffect(() => {
     if (!settingsReady) return;
-    const settings = { version: 1, title, artist, color, backgroundColor, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality };
+    const settings = { version: 1, title, artist, color, backgroundColor, backgroundDensity, backgroundBeat, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality };
     try { localStorage.setItem(settingsKey, JSON.stringify(settings)); } catch { /* Storage may be unavailable or full. */ }
-  }, [settingsReady, title, artist, color, backgroundColor, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality]);
+  }, [settingsReady, title, artist, color, backgroundColor, backgroundDensity, backgroundBeat, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality]);
 
 
 
@@ -110,6 +117,12 @@ function App() {
       gradient.addColorStop(1, '#090912');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, heightPx);
+      if (backgroundImageRef.current) {
+        const img=backgroundImageRef.current, bass=backgroundBeat?beatEnergy:0;
+        const zoom=1+bass*backgroundDensity/180;
+        const scale=Math.max(width/img.width,heightPx/img.height)*zoom,dw=img.width*scale,dh=img.height*scale;
+        ctx.save();ctx.globalAlpha=Math.min(1,.45+backgroundDensity/180+bass*.35);ctx.drawImage(img,(width-dw)/2,(heightPx-dh)/2,dw,dh);ctx.restore();
+      }
       // ambient glow
       const glowX = width * (0.5 + Math.sin(tick * 0.008) * motion / 120);
       const glowY = heightPx * (0.55 + Math.cos(tick * 0.006) * motion / 180);
@@ -149,7 +162,14 @@ function App() {
       const centerY = heightPx * (position / 100);
       const maxH = heightPx * (height / 100) * 0.82;
       const barW = width / density;
-      if (preset === 'Wave') {
+      if (preset === 'Radial') {
+        const r=Math.min(width,heightPx)*.22,cx=width*.5;
+        for(let i=0;i<density;i++){const a=i/density*Math.PI*2,amp=data[i]/255,outer=r+amp*maxH*.6;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*r,centerY+Math.sin(a)*r);ctx.lineTo(cx+Math.cos(a)*outer,centerY+Math.sin(a)*outer);ctx.strokeStyle=color;ctx.lineWidth=Math.max(2,barW*.75);ctx.shadowBlur=10;ctx.shadowColor=color;ctx.stroke();}ctx.shadowBlur=0;
+      } else if (preset === 'Stacked') {
+        for(let i=0;i<density;i++){const amp=data[i]/255,x=i*barW,w=Math.max(1,barW*.7),h=Math.max(2,amp*maxH);for(let j=0;j<4;j++){ctx.globalAlpha=.35+j*.16;ctx.fillStyle=color;ctx.fillRect(x+(barW-w)/2,centerY-h*(j+1)/4,w,h/4-1);}}ctx.globalAlpha=1;
+      } else if (preset === 'Line') {
+        ctx.beginPath();for(let i=0;i<density;i++){const x=i*barW,y=centerY+(data[i]/255)*maxH*(Math.sin(i*.2+tick*.025)>=0?1:-1);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.strokeStyle=color;ctx.lineWidth=2;ctx.shadowBlur=12;ctx.shadowColor=color;ctx.stroke();ctx.shadowBlur=0;
+      } else if (preset === 'Wave') {
         ctx.beginPath();
         for (let i = 0; i < density; i++) {
           const y = centerY + Math.sin(i * 0.13 + tick * 0.03) * (data[i] / 255) * maxH;
@@ -213,7 +233,7 @@ function App() {
     };
     draw();
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(rafRef.current); };
-  }, [color, preset, density, height, position, playing, title, artist, motion, textColor, textScale, textX, textY, exportQuality, aspect, backgroundColor]);
+  }, [color, preset, density, height, position, playing, title, artist, motion, textColor, textScale, textX, textY, exportQuality, aspect, backgroundColor, backgroundBeat, backgroundDensity]);
 
   const ensureAudioGraph = () => {
     const audio = audioRef.current;
@@ -287,7 +307,7 @@ function App() {
   };
 
   const saveProject = () => {
-    const project = { version: 1, title, artist, color, backgroundColor, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality };
+    const project = { version: 1, title, artist, color, backgroundColor, backgroundDensity, backgroundBeat, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality };
     const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -305,6 +325,8 @@ function App() {
         if (typeof p.artist === 'string') setArtist(p.artist);
         if (typeof p.color === 'string') setColor(p.color);
         if (typeof p.backgroundColor === 'string') setBackgroundColor(p.backgroundColor);
+        if (Number.isFinite(p.backgroundDensity)) setBackgroundDensity(p.backgroundDensity);
+        if (typeof p.backgroundBeat === 'boolean') setBackgroundBeat(p.backgroundBeat);
         if (presets.includes(p.preset)) setPreset(p.preset);
         if (Number.isFinite(p.density)) setDensity(p.density);
         if (Number.isFinite(p.height)) setHeight(p.height);
@@ -357,6 +379,9 @@ function App() {
           <div className="swatches">{['#9b5cff','#37e0ff','#ff4d9d','#b8ff4d','#ffb347','#ffffff'].map(c=><button key={c} style={{background:c}} className={color===c?'selected':''} onClick={()=>setColor(c)} title={c}/>)}</div>
           <div className="color-row"><label>Background color</label><div className="color-picker"><input type="color" value={backgroundColor} onChange={e=>setBackgroundColor(e.target.value)}/><span>{backgroundColor.toUpperCase()}</span></div></div>
           <div className="swatches">{['#10142a','#160a25','#08202a','#22100c','#0b2020','#111111'].map(c=><button key={'bg-'+c} style={{background:c}} className={backgroundColor===c?'selected':''} onClick={()=>setBackgroundColor(c)} title={c}/>)}</div>
+          <label className="upload-zone bg-upload" htmlFor="background-upload"><div className="upload-icon">▧</div><strong>{backgroundImageName || 'Add background image'}</strong><small>JPG, PNG, WEBP</small><input id="background-upload" type="file" accept="image/*" onChange={e=>{const file=e.target.files?.[0];if(!file)return;setBackgroundImageName(file.name);const img=new Image();img.onload=()=>{backgroundImageRef.current=img;};img.src=URL.createObjectURL(file);}}/></label>
+          <div className="slider-row"><label>Bass-reactive background <span>{backgroundBeat?'ON':'OFF'}</span></label><button className="toggle-btn" onClick={()=>setBackgroundBeat(v=>!v)}>{backgroundBeat?'Disable bass reaction':'Enable bass reaction'}</button></div>
+          <div className="slider-row"><label>Background intensity <span>{backgroundDensity}%</span></label><input type="range" min="0" max="100" value={backgroundDensity} onChange={e=>setBackgroundDensity(+e.target.value)}/></div>
 
         </section>
         <section className="panel-section">
@@ -384,11 +409,11 @@ function App() {
           <div className={'preview-frame ' + dimensions}><canvas ref={canvasRef}/><div className="frame-badge">{aspect} <span>•</span> 30 FPS</div></div>
           <div className="preview-note"><span className="sparkle">✦</span> Preview updates live as you edit</div>
         </div>
-        <div className="timeline-area"><div className="timeline-header"><span>Timeline</span><span className="timeline-hint">LIVE PREVIEW</span></div><div className="timeline-track"><div className="timeline-playhead"/><div className="timeline-waveform">{Array.from({length:120},(_,i)=><i key={i} style={{height:(6+((i*17+Math.sin(i)*11)%31))+'px'}}/>)}</div></div><div className="timeline-time"><span>00:00</span><span>{audioRef.current?.duration ? formatTime(audioRef.current.duration) : '--:--'}</span></div></div>
+        <div className="timeline-area"><div className="timeline-header"><span>Timeline</span><span className="timeline-hint">LIVE PREVIEW</span></div><div className="timeline-track"><div className="timeline-playhead" style={{left:duration?currentTime/duration*100+'%':'0%'}}/><div className="timeline-waveform">{Array.from({length:120},(_,i)=><i key={i} style={{height:(6+((i*17+Math.sin(i)*11)%31))+'px'}}/>)}</div></div><div className="timeline-time"><span>00:00</span><span>{duration ? formatTime(duration) : '--:--'}</span></div><input className="seek-slider" aria-label="Seek playback" type="range" min="0" max={duration||0} step="0.01" value={Math.min(currentTime,duration||0)} disabled={!duration} onChange={e=>{const t=+e.target.value;if(audioRef.current){audioRef.current.currentTime=t;setCurrentTime(t);}}}/></div>
         {exportMessage && <div className="toast-msg">{exportMessage}</div>}
       </main>
     </div>
-    <audio ref={audioRef} src={audioUrl || undefined} onEnded={()=>setPlaying(false)} onTimeUpdate={e=>setCurrentTime(e.currentTarget.currentTime)}/>
+    <audio ref={audioRef} src={audioUrl || undefined} onLoadedMetadata={e=>setDuration(e.currentTarget.duration||0)} onEnded={()=>setPlaying(false)} onTimeUpdate={e=>setCurrentTime(e.currentTarget.currentTime)}/>
   </div>;
 }
 
