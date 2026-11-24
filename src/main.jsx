@@ -30,6 +30,11 @@ function App() {
   const [volume, setVolume] = useState(80);
   const [currentTime, setCurrentTime] = useState(0);
   const [motion, setMotion] = useState(55);
+  const [textColor, setTextColor] = useState('#ffffff');
+  const [textScale, setTextScale] = useState(100);
+  const [exportQuality, setExportQuality] = useState('1080');
+  const audioContextRef = useRef(null);
+  const streamDestinationRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -38,11 +43,13 @@ function App() {
     let width = 0, heightPx = 0;
     const resize = () => {
       const box = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = box.width; heightPx = box.height;
-      canvas.width = Math.max(1, Math.floor(width * dpr));
-      canvas.height = Math.max(1, Math.floor(heightPx * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const base = Number(exportQuality);
+      const targetW = aspect === '16:9' ? (base === 1080 ? 1920 : 1280) : base;
+      const scale = Math.max(1, targetW / Math.max(1, width));
+      canvas.width = Math.max(1, Math.floor(width * scale));
+      canvas.height = Math.max(1, Math.floor(heightPx * scale));
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
     };
     resize();
     window.addEventListener('resize', resize);
@@ -133,17 +140,17 @@ function App() {
       ctx.fillStyle = 'rgba(255,255,255,0.025)';
       for (let y = 0; y < heightPx; y += 4) ctx.fillRect(0, y, width, 1);
       ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255,255,255,.92)';
-      ctx.font = '700 ' + Math.max(14, width * 0.035) + 'px Inter, Arial, sans-serif';
+      ctx.fillStyle = textColor;
+      ctx.font = '700 ' + (Math.max(14, width * 0.035) * (textScale / 100)) + 'px Inter, Arial, sans-serif';
       ctx.fillText(title || 'YOUR SONG TITLE', width / 2, heightPx * 0.23);
       ctx.fillStyle = 'rgba(255,255,255,.5)';
-      ctx.font = '500 ' + Math.max(10, width * 0.016) + 'px Inter, Arial, sans-serif';
+      ctx.font = '500 ' + (Math.max(10, width * 0.016) * (textScale / 100)) + 'px Inter, Arial, sans-serif';
       ctx.fillText(artist || 'ARTIST NAME', width / 2, heightPx * 0.29);
       rafRef.current = requestAnimationFrame(draw);
     };
     draw();
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(rafRef.current); };
-  }, [color, preset, density, height, position, playing, title, artist, motion]);
+  }, [color, preset, density, height, position, playing, title, artist, motion, textColor, textScale, exportQuality, aspect]);
 
   const ensureAudioGraph = () => {
     const audio = audioRef.current;
@@ -151,9 +158,10 @@ function App() {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createMediaElementSource(audio);
     const analyser = audioCtx.createAnalyser();
+    const streamDest = audioCtx.createMediaStreamDestination();
     analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.82;
-    source.connect(analyser); analyser.connect(audioCtx.destination);
-    sourceRef.current = source; analyserRef.current = analyser;
+    source.connect(analyser); analyser.connect(audioCtx.destination); analyser.connect(streamDest);
+    sourceRef.current = source; analyserRef.current = analyser; audioContextRef.current = audioCtx; streamDestinationRef.current = streamDest;
   };
 
   const loadAudio = (file) => {
@@ -167,6 +175,7 @@ function App() {
   const togglePlay = async () => {
     if (!audioRef.current || !audioUrl) return;
     ensureAudioGraph();
+    if (audioContextRef.current?.state === 'suspended') await audioContextRef.current.resume();
     if (playing) { audioRef.current.pause(); setPlaying(false); }
     else { await audioRef.current.play(); setPlaying(true); }
   };
@@ -177,16 +186,16 @@ function App() {
     if (!canvas.captureStream || !window.MediaRecorder) { setExportMessage('Tu navegador no soporta la grabación de canvas.'); return; }
     ensureAudioGraph();
     const canvasStream = canvas.captureStream(30);
-    const audioStream = audioRef.current.captureStream ? audioRef.current.captureStream() : null;
+    const audioStream = streamDestinationRef.current?.stream;
     const mixed = new MediaStream([...canvasStream.getVideoTracks(), ...(audioStream?.getAudioTracks() || [])]);
     const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
-    const recorder = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: 6000000 });
+    const recorder = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: Number(exportQuality) === 1080 ? 8000000 : 4500000 });
     chunksRef.current = [];
     recorder.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mime });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (fileName.replace(/\.[^/.]+$/, '') || 'cha-visualizer') + '.webm'; a.click();
-      setExportMessage('¡Exportación terminada! Se descargó tu video WebM.');
+      setExportMessage('Exportación terminada. Video WebM descargado en ' + exportQuality + 'p.');
       setExporting(false);
       mixed.getTracks().forEach(t => t.stop());
     };
@@ -237,10 +246,13 @@ function App() {
           <div className="section-title"><span className="section-icon">T</span> Text <span className="chevron">⌄</span></div>
           <label className="field-label">Song title</label><input className="text-input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Song title"/>
           <label className="field-label">Artist</label><input className="text-input" value={artist} onChange={e=>setArtist(e.target.value)} placeholder="Artist name"/>
+          <div className="color-row text-color-row"><label>Text color</label><div className="color-picker"><input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/><span>{textColor.toUpperCase()}</span></div></div>
+          <div className="slider-row"><label>Text size <span>{textScale}%</span></label><input type="range" min="60" max="160" step="5" value={textScale} onChange={e=>setTextScale(+e.target.value)}/></div>
         </section>
         <section className="panel-section last">
           <div className="section-title"><span className="section-icon">▣</span> Canvas <span className="chevron">⌄</span></div>
           <label className="field-label">Aspect ratio</label><div className="ratio-grid">{['16:9','9:16','1:1','4:5'].map(r=><button key={r} className={aspect===r?'ratio-active':''} onClick={()=>setAspect(r)}>{r}</button>)}</div>
+          <label className="field-label">Export resolution</label><div className="ratio-grid"><button className={exportQuality==='720'?'ratio-active':''} onClick={()=>setExportQuality('720')}>720p</button><button className={exportQuality==='1080'?'ratio-active':''} onClick={()=>setExportQuality('1080')}>1080p</button></div>
         </section>
         <div className="sidebar-footer"><span className="status-indicator"/> Autosaved locally <span>v0.1</span></div>
       </aside>
