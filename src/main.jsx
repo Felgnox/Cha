@@ -33,6 +33,8 @@ function App() {
   const [motion, setMotion] = useState(55);
   const [textColor, setTextColor] = useState('#ffffff');
   const [textScale, setTextScale] = useState(100);
+  const [textX, setTextX] = useState(50);
+  const [textY, setTextY] = useState(23);
   const [exportQuality, setExportQuality] = useState('1080');
   const audioContextRef = useRef(null);
   const streamDestinationRef = useRef(null);
@@ -150,15 +152,15 @@ function App() {
       ctx.textAlign = 'center';
       ctx.fillStyle = textColor;
       ctx.font = '700 ' + (Math.max(14, width * 0.035) * (textScale / 100)) + 'px Inter, Arial, sans-serif';
-      ctx.fillText(title || 'YOUR SONG TITLE', width / 2, heightPx * 0.23);
+      ctx.fillText(title || 'YOUR SONG TITLE', width * (textX / 100), heightPx * (textY / 100));
       ctx.fillStyle = 'rgba(255,255,255,.5)';
       ctx.font = '500 ' + (Math.max(10, width * 0.016) * (textScale / 100)) + 'px Inter, Arial, sans-serif';
-      ctx.fillText(artist || 'ARTIST NAME', width / 2, heightPx * 0.29);
+      ctx.fillText(artist || 'ARTIST NAME', width * (textX / 100), heightPx * ((textY + 6) / 100));
       rafRef.current = requestAnimationFrame(draw);
     };
     draw();
     return () => { window.removeEventListener('resize', resize); cancelAnimationFrame(rafRef.current); };
-  }, [color, preset, density, height, position, playing, title, artist, motion, textColor, textScale, exportQuality, aspect, backgroundColor]);
+  }, [color, preset, density, height, position, playing, title, artist, motion, textColor, textScale, textX, textY, exportQuality, aspect, backgroundColor]);
 
   const ensureAudioGraph = () => {
     const audio = audioRef.current;
@@ -216,7 +218,7 @@ function App() {
   };
 
   const saveProject = () => {
-    const project = { version: 1, title, artist, color, backgroundColor, preset, density, height, position, aspect, motion, textColor, textScale, exportQuality };
+    const project = { version: 1, title, artist, color, backgroundColor, preset, density, height, position, aspect, motion, textColor, textScale, textX, textY, exportQuality };
     const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -242,6 +244,8 @@ function App() {
         if (Number.isFinite(p.motion)) setMotion(p.motion);
         if (typeof p.textColor === 'string') setTextColor(p.textColor);
         if (Number.isFinite(p.textScale)) setTextScale(p.textScale);
+        if (Number.isFinite(p.textX)) setTextX(p.textX);
+        if (Number.isFinite(p.textY)) setTextY(p.textY);
         if (['720','1080'].includes(String(p.exportQuality))) setExportQuality(String(p.exportQuality));
         setExportMessage('Project settings loaded.');
       } catch { setExportMessage('Invalid project file.'); }
@@ -292,6 +296,8 @@ function App() {
           <label className="field-label">Artist</label><input className="text-input" value={artist} onChange={e=>setArtist(e.target.value)} placeholder="Artist name"/>
           <div className="color-row text-color-row"><label>Text color</label><div className="color-picker"><input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/><span>{textColor.toUpperCase()}</span></div></div>
           <div className="slider-row"><label>Text size <span>{textScale}%</span></label><input type="range" min="60" max="160" step="5" value={textScale} onChange={e=>setTextScale(+e.target.value)}/></div>
+          <div className="slider-row"><label>Text horizontal <span>{textX}%</span></label><input type="range" min="5" max="95" value={textX} onChange={e=>setTextX(+e.target.value)}/></div>
+          <div className="slider-row"><label>Text vertical <span>{textY}%</span></label><input type="range" min="5" max="85" value={textY} onChange={e=>setTextY(+e.target.value)}/></div>
           <div className="color-row text-color-row"><label>Text color</label><div className="color-picker"><input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/><span>{textColor.toUpperCase()}</span></div></div>
           <div className="slider-row"><label>Text size <span>{textScale}%</span></label><input type="range" min="60" max="160" step="5" value={textScale} onChange={e=>setTextScale(+e.target.value)}/></div>
         </section>
