@@ -22,3 +22,5 @@ audio{display:none}
 @media(max-width:650px){.app-shell{height:auto;min-height:100vh;overflow:auto}.layout{flex-direction:column}.sidebar{width:100%;min-width:0;max-height:none;border-right:0;border-bottom:1px solid #282833}.workspace{min-height:65vh}.top-actions .ghost-btn{display:none}.preview-stage{min-height:300px}.preview-frame.portrait,.preview-frame.portrait-45,.preview-frame.square{height:auto;width:min(100%,420px)}.timeline-area{margin-bottom:15px}}
 
 .text-color-row{margin-top:10px}.text-color-row .color-picker input{width:22px;height:22px}
+
+.text-color-row{margin-top:10px}.text-color-row .color-picker input{width:22px;height:22px}
