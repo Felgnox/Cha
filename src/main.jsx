@@ -29,6 +29,7 @@ function App() {
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
   const [volume, setVolume] = useState(80);
+  const exportCleanupRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [motion, setMotion] = useState(55);
   const [textColor, setTextColor] = useState('#ffffff');
@@ -66,6 +67,10 @@ function App() {
     } catch { /* Ignore corrupted local settings and keep defaults. */ }
     setSettingsReady(true);
   }, []);
+
+  useEffect(() => { if (audioRef.current) audioRef.current.volume = volume / 100; }, [volume]);
+
+  useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl); if (exportCleanupRef.current) exportCleanupRef.current(); }, [audioUrl]);
 
   useEffect(() => {
     if (!settingsReady) return;
@@ -241,28 +246,44 @@ function App() {
   const startExport = () => {
     if (!audioUrl) { setExportMessage('Primero carga una canción para exportar.'); return; }
     const canvas = canvasRef.current;
-    if (!canvas.captureStream || !window.MediaRecorder) { setExportMessage('Tu navegador no soporta la grabación de canvas.'); return; }
-    ensureAudioGraph();
-    const canvasStream = canvas.captureStream(30);
-    const audioStream = streamDestinationRef.current?.stream;
-    const mixed = new MediaStream([...canvasStream.getVideoTracks(), ...(audioStream?.getAudioTracks() || [])]);
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
-    const recorder = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: Number(exportQuality) === 1080 ? 8000000 : 4500000 });
-    chunksRef.current = [];
-    recorder.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
-    recorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: mime });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (fileName.replace(/\.[^/.]+$/, '') || 'cha-visualizer') + '.webm'; a.click();
-      setExportMessage('Exportación terminada. Video WebM descargado en ' + exportQuality + 'p.');
+    if (!canvas.captureStream || !window.MediaRecorder || !window.MediaStream) { setExportMessage('Tu navegador no soporta la grabación de canvas.'); return; }
+    try {
+      ensureAudioGraph();
+      const canvasStream = canvas.captureStream(30);
+      const audioStream = streamDestinationRef.current?.stream;
+      const mixed = new MediaStream([...canvasStream.getVideoTracks(), ...(audioStream?.getAudioTracks() || [])]);
+      const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+      const recorder = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: Number(exportQuality) === 1080 ? 8000000 : 4500000 });
+      chunksRef.current = [];
+      const originalOnEnded = audioRef.current.onended;
+      exportCleanupRef.current = () => {
+        mixed.getTracks().forEach(t => t.stop());
+        if (audioRef.current) audioRef.current.onended = originalOnEnded;
+        exportCleanupRef.current = null;
+      };
+      recorder.ondataavailable = (e) => { if (e.data?.size) chunksRef.current.push(e.data); };
+      recorder.onerror = () => { setExportMessage('Error durante la exportación.'); setExporting(false); exportCleanupRef.current?.(); };
+      recorder.onstop = () => {
+        if (chunksRef.current.length) {
+          const blob = new Blob(chunksRef.current, { type: mime });
+          const downloadUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = downloadUrl; a.download = (fileName.replace(/\\.[^/.]+$/, '') || 'cha-visualizer') + '.webm'; a.click();
+          setTimeout(() => URL.revokeObjectURL(downloadUrl), 30000);
+          setExportMessage('Exportación terminada. Video WebM descargado en ' + exportQuality + 'p.');
+        } else setExportMessage('Exportación detenida antes de crear el video.');
+        setExporting(false); exportCleanupRef.current?.();
+      };
+      setExporting(true); setExportMessage('Grabando visualizador en tiempo real…');
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().then(() => setPlaying(true)).catch(() => { recorder.stop(); setExportMessage('No se pudo iniciar el audio para exportar.'); });
+      audioRef.current.onended = () => { if (recorder.state !== 'inactive') recorder.stop(); setPlaying(false); };
+    } catch (err) {
+      setExportMessage('No se pudo iniciar la exportación en este navegador.');
       setExporting(false);
-      mixed.getTracks().forEach(t => t.stop());
-    };
-    setExporting(true); setExportMessage('Grabando visualizador en tiempo real…');
-    recorder.start();
-    audioRef.current.currentTime = 0;
-    audioRef.current.play().then(() => setPlaying(true)).catch(() => {});
-    audioRef.current.onended = () => { if (recorder.state !== 'inactive') recorder.stop(); setPlaying(false); };
-    mediaRecorderRef.current = recorder;
+      exportCleanupRef.current?.();
+    }
   };
 
   const saveProject = () => {
@@ -301,7 +322,7 @@ function App() {
     reader.readAsText(file);
   };
   const stopExport = () => {
-    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop();
     audioRef.current?.pause(); setPlaying(false);
   };
 
@@ -319,7 +340,7 @@ function App() {
         <section className="panel-section">
           <button type="button" className="section-title section-toggle" aria-expanded={!panelCollapsed.audio} onClick={() => togglePanel("audio")}><span className="section-icon">♫</span> Audio <span className="chevron">{panelCollapsed.audio ? '›' : '⌄'}</span></button>
           <label className="upload-zone" htmlFor="audio-upload"><div className="upload-icon">↑</div><strong>{fileName ? 'Replace track' : 'Drop your audio here'}</strong><small>MP3, WAV, M4A · or browse</small><input id="audio-upload" type="file" accept="audio/*" onChange={e => loadAudio(e.target.files?.[0])}/></label>
-          {fileName && <div className="loaded-track"><span className="track-icon">♫</span><div><b>{fileName}</b><small>Ready to visualize</small></div><button title="Remove audio" onClick={() => {audioRef.current.pause(); setAudioUrl(''); setFileName(''); setPlaying(false);}}>×</button></div>}
+          {fileName && <div className="loaded-track"><span className="track-icon">♫</span><div><b>{fileName}</b><small>Ready to visualize</small></div><button title="Remove audio" onClick={() => {audioRef.current.pause(); if (audioUrl) URL.revokeObjectURL(audioUrl); setAudioUrl(''); setFileName(''); setPlaying(false); setCurrentTime(0);}}>×</button></div>}
           <div className="audio-controls"><button className="play-btn" onClick={togglePlay} disabled={!audioUrl}>{playing ? 'Ⅱ' : '▶'}</button><div className="audio-meta"><div className="track-line"><span>{playing ? 'Playing audio' : 'Preview track'}</span><span className="time-label">{audioUrl ? formatTime(currentTime) : '00:00'}</span></div><div className="progress-track"><div className="progress-fill" style={{width: audioRef.current && audioUrl && audioRef.current.duration ? (audioRef.current.currentTime/audioRef.current.duration*100)+'%' : '0%'}} /></div></div><div className="volume-control"><span className="vol-icon">◖))</span><input aria-label="Volume" type="range" min="0" max="100" value={volume} onChange={e=>{const v=+e.target.value;setVolume(v);if(audioRef.current)audioRef.current.volume=v/100;}}/></div></div>
         </section>
         <section className="panel-section">
