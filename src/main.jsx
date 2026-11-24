@@ -35,6 +35,11 @@ function App() {
   const [exportQuality, setExportQuality] = useState('1080');
   const audioContextRef = useRef(null);
   const streamDestinationRef = useRef(null);
+  const [textColor, setTextColor] = useState('#ffffff');
+  const [textScale, setTextScale] = useState(100);
+  const [exportQuality, setExportQuality] = useState('1080');
+  const audioContextRef = useRef(null);
+  const streamDestinationRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -248,10 +253,13 @@ function App() {
           <label className="field-label">Artist</label><input className="text-input" value={artist} onChange={e=>setArtist(e.target.value)} placeholder="Artist name"/>
           <div className="color-row text-color-row"><label>Text color</label><div className="color-picker"><input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/><span>{textColor.toUpperCase()}</span></div></div>
           <div className="slider-row"><label>Text size <span>{textScale}%</span></label><input type="range" min="60" max="160" step="5" value={textScale} onChange={e=>setTextScale(+e.target.value)}/></div>
+          <div className="color-row text-color-row"><label>Text color</label><div className="color-picker"><input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/><span>{textColor.toUpperCase()}</span></div></div>
+          <div className="slider-row"><label>Text size <span>{textScale}%</span></label><input type="range" min="60" max="160" step="5" value={textScale} onChange={e=>setTextScale(+e.target.value)}/></div>
         </section>
         <section className="panel-section last">
           <div className="section-title"><span className="section-icon">▣</span> Canvas <span className="chevron">⌄</span></div>
           <label className="field-label">Aspect ratio</label><div className="ratio-grid">{['16:9','9:16','1:1','4:5'].map(r=><button key={r} className={aspect===r?'ratio-active':''} onClick={()=>setAspect(r)}>{r}</button>)}</div>
+          <label className="field-label">Export resolution</label><div className="ratio-grid"><button className={exportQuality==='720'?'ratio-active':''} onClick={()=>setExportQuality('720')}>720p</button><button className={exportQuality==='1080'?'ratio-active':''} onClick={()=>setExportQuality('1080')}>1080p</button></div>
           <label className="field-label">Export resolution</label><div className="ratio-grid"><button className={exportQuality==='720'?'ratio-active':''} onClick={()=>setExportQuality('720')}>720p</button><button className={exportQuality==='1080'?'ratio-active':''} onClick={()=>setExportQuality('1080')}>1080p</button></div>
         </section>
         <div className="sidebar-footer"><span className="status-indicator"/> Autosaved locally <span>v0.1</span></div>
