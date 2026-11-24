@@ -97,9 +97,14 @@ function App() {
         const raw = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(raw);
         data = new Uint8Array(density);
+        // Logarithmic frequency sampling gives bass and mids more visual room.
         for (let i = 0; i < density; i++) {
-          const idx = Math.floor(i / density * raw.length);
-          data[i] = raw[idx] || 0;
+          const normalized = i / Math.max(1, density - 1);
+          const lowBin = Math.max(1, Math.floor(Math.pow(normalized, 2.15) * (raw.length - 1)));
+          const highBin = Math.min(raw.length - 1, lowBin + Math.max(1, Math.floor(raw.length * 0.008)));
+          let band = 0;
+          for (let b = lowBin; b <= highBin; b++) band = Math.max(band, raw[b] || 0);
+          data[i] = band;
         }
       } else {
         for (let i = 0; i < density; i++) data[i] = 10 + Math.abs(Math.sin(tick * 0.024 + i * 0.19)) * (playing ? 160 : 28) + Math.abs(Math.sin(tick * 0.01 + i * 0.11)) * 20;
