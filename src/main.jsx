@@ -117,12 +117,6 @@ function App() {
       gradient.addColorStop(1, '#090912');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, heightPx);
-      if (backgroundImageRef.current) {
-        const img=backgroundImageRef.current, bass=backgroundBeat?beatEnergy:0;
-        const zoom=1+bass*backgroundDensity/180;
-        const scale=Math.max(width/img.width,heightPx/img.height)*zoom,dw=img.width*scale,dh=img.height*scale;
-        ctx.save();ctx.globalAlpha=Math.min(1,.45+backgroundDensity/180+bass*.35);ctx.drawImage(img,(width-dw)/2,(heightPx-dh)/2,dw,dh);ctx.restore();
-      }
       // ambient glow
       const glowX = width * (0.5 + Math.sin(tick * 0.008) * motion / 120);
       const glowY = heightPx * (0.55 + Math.cos(tick * 0.006) * motion / 180);
@@ -136,6 +130,12 @@ function App() {
         beatEnergy = beatEnergy / sampleCount / 255;
       } else {
         beatEnergy = playing ? 0.28 + Math.abs(Math.sin(tick * 0.045)) * 0.22 : 0.04;
+      }
+      if (backgroundImageRef.current) {
+        const img=backgroundImageRef.current, bass=backgroundBeat?beatEnergy:0;
+        const zoom=1+bass*backgroundDensity/180;
+        const scale=Math.max(width/img.width,heightPx/img.height)*zoom,dw=img.width*scale,dh=img.height*scale;
+        ctx.save();ctx.globalAlpha=Math.min(1,.45+backgroundDensity/180+bass*.35);ctx.drawImage(img,(width-dw)/2,(heightPx-dh)/2,dw,dh);ctx.restore();
       }
       const pulseRadius = width * (0.48 + beatEnergy * 0.24) * (motion / 100);
       const glow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, pulseRadius);
